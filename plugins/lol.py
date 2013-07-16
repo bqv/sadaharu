@@ -1,8 +1,8 @@
 # lol.py: A test plugin
 
-from sadaharu import Hook
+from hooks import Hook
 
-@Hook("PRIVMSG")
+@Hook("PRIVMSG", disabled=True)
 def lol_per_msg(args):
     (user, to, msg) = args
     i = LOL()

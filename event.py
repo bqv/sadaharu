@@ -1,4 +1,4 @@
-# event.py: Event handler class
+# event.py: Classes relating to events or handling
 
 import sys
 import time
@@ -31,14 +31,17 @@ class Handler:
 
         user = self.getuser(prefix)
 
-        (command, user, params) = self.bot.event.call("READ", (command, user, params))
+        try:
+            (command, user, params) = self.bot.event.call("READ", (command, user, params))
 
-        if command in self.registered.keys():
-            self.registered[command](user, params)
-        elif len(command) == 3 and command.isdigit():
-            self.onnumeric(command, user, params)
-        else:
-            self.bot.log.warning("Couldn't process unregistered command: %s %s", command, params)
+            if command in self.registered.keys():
+                self.registered[command](user, params)
+            elif len(command) == 3 and command.isdigit():
+                self.onnumeric(command, user, params)
+            else:
+                self.bot.log.warning("Couldn't process unregistered command: %s %s", command, params)
+        except CancelEvent:
+            return
 
     def getuser(self, prefix):
         if prefix:
@@ -99,19 +102,81 @@ class Handler:
         sys.exit(0)
 
 class Events:
-    hooks = {"SEND": [2], "SENDRAW": [1], "READ": [3], "READRAW": [1],
-            "PING": [1], "PONG": [1], "PRIVMSG": [3], "NICK": [1], "NOTICE": [2],
-            "RESPONSE": [3]}
+    class HookObj:
+        def __init__(self, name, args):
+            self.name = name
+            self.nargs = args
+            self._active = {0:[], 1:[], 2:[], 3:[]}
+            self._inactive = {0:[], 1:[], 2:[], 3:[]}
+
+        def add(self, thook, priority=1, disabled=False):
+            if disabled:
+                self._inactive[priority].append(thook)
+            else:
+                self._active[priority].append(thook)
+
+        def remove(self, name, priority=1, disabled=False):
+            if disabled:
+                for i,thook in enumerate(self._inactive[priority]):
+                    if thook.name == name:
+                        self._inactive.remove(i)
+            else:
+                for i,thook in enumerate(self._active[priority]):
+                    if thook.name == name:
+                        self._active.remove(i)
+
+        def _get(self, priority, with_disabled=False):
+            l = self._active[priority]
+            if with_disabled:
+                l += self._inactive[priority]
+            return l
+
+        def active(self):
+            l = []
+            map(l.extend, self._active.values()[::-1])
+            return l
+
+        def inactive(self):
+            l = []
+            map(l.extend, self._inactive.values()[::-1])
+            return l
+
+        def low(self, with_disabled=False):
+            return self._get(0, with_disabled)
+        def mid(self, with_disabled=False):
+            return self._get(1, with_disabled)
+        def high(self, with_disabled=False):
+            return self._get(2, with_disabled)
+        def urgent(self, with_disabled=False):
+            return self._get(3, with_disabled)
+
+    hooks = {"SEND":HookObj("SEND",2), "SENDRAW":HookObj("SENDRAW",1), "READ":HookObj("READ",3),
+            "READRAW":HookObj("READRAW",1), "PING":HookObj("PING",1), "PONG":HookObj("PONG",1),
+            "PRIVMSG":HookObj("PRIVMSG",3), "NICK":HookObj("NICK",1), "NOTICE":HookObj("NOTICE",2),
+            "RESPONSE":HookObj("RESPONSE",3)}
 
     def __init__(self, bot):
         self.bot = bot
 
     def call(self, evname, args=()):
-        for hook in self.hooks[evname][1:]:
+        args = self.runhooks(self.hooks[evname].urgent(), evname, args)
+        args = self.runhooks(self.hooks[evname].high(), evname, args)
+        args = self.runhooks(self.hooks[evname].mid(), evname, args)
+        args = self.runhooks(self.hooks[evname].low(), evname, args)
+        return args
+
+    def runhooks(self, hookset, evname, args):
+        for hook in hookset:
             result = hook(args)
             if result:
-                if len(result) == self.hooks[evname][0]:
+                if len(result) == self.hooks[evname].nargs:
                     args = result
                 else:
                     self.bot.log.error("Bad return value from hook %s", str(hook))
+            else:
+                raise CancelEvent(hook.name)
         return args
+    
+class CancelEvent(Exception):
+    pass
+

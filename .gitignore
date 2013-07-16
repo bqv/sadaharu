@@ -29,7 +29,13 @@ nosetests.xml
 # Translations
 *.mo
 
-# Mr Developer
-.mr.developer.cfg
-.project
-.pydevproject
+# Vim
+.*.swp
+.*.swo
+
+# Sadaharu
+conf.json
+*.json
+*.db
+*.log
+*.log.*
