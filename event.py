@@ -1,5 +1,6 @@
 # event.py: Event handler class
 
+import sys
 import time
 
 class Handler:
@@ -63,22 +64,22 @@ class Handler:
         self.bot.server.send("PONG", params)
 
     def onprivmsg(self, user, msg):
-        (user, msg) = self.bot.event.call("PRIVMSG", (user, msg))
-        t = time.localtime()
-        timestamp = "[%02d:%02d:%02d] " %(t.tm_hour, t.tm_min, t.tm_sec)
         msg = msg.split(' ', 1)
         to = msg[0]
         msg = msg[1][1:]
+        (user, to, msg) = self.bot.event.call("PRIVMSG", (user, to, msg))
+        t = time.localtime()
+        timestamp = "[%02d:%02d:%02d] " %(t.tm_hour, t.tm_min, t.tm_sec)
         message = "[%s] <%s> %s" %(to, user['nick'], msg)
         self.bot.log.info("%s%s" %(timestamp, message))
 
     def onnotice(self, user, msg):
-        (user, msg) = self.bot.event.call("NOTICE", (user, msg))
-        t = time.localtime()
-        timestamp = "[%02d:%02d:%02d] " %(t.tm_hour, t.tm_min, t.tm_sec)
         msg = msg.split(' ', 1)
         to = msg[0]
         msg = msg[1][1:]
+        (user, to, msg) = self.bot.event.call("NOTICE", (user, to, msg))
+        t = time.localtime()
+        timestamp = "[%02d:%02d:%02d] " %(t.tm_hour, t.tm_min, t.tm_sec)
         notice = "[%s] -%s- %s" %(to, user['nick'], msg)
         self.bot.log.info("%s%s" %(timestamp, notice))
 
@@ -95,13 +96,15 @@ class Handler:
 
     def onerror(self, user, err):
         self.bot.server.disconnect()
+        sys.exit(0)
 
 class Events:
+    hooks = {"SEND": [2], "SENDRAW": [1], "READ": [3], "READRAW": [1],
+            "PING": [1], "PONG": [1], "PRIVMSG": [3], "NICK": [1], "NOTICE": [2],
+            "RESPONSE": [3]}
+
     def __init__(self, bot):
         self.bot = bot
-        self.hooks = {"SEND": [2], "SENDRAW": [1], "READ": [3], "READRAW": [1],
-                "PING": [1], "PONG": [1], "PRIVMSG": [2], "NICK": [1], "NOTICE": [2],
-                "RESPONSE": [3]}
 
     def call(self, evname, args=()):
         for hook in self.hooks[evname][1:]:
