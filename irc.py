@@ -55,10 +55,8 @@ class IRCServer:
         self.send("USER", "%s %s %s %s" %(user, host, server, name))
         if pswd:
             self.send("PASS", pswd)
-        time.sleep(2)
         for line in self.recv():
             self.bot.handler.handle(line)
-        self.send("MODE", nick+" +B")
 
     def identify(self, passwd, service="NickServ"):
         self.send("PRIVMSG", "%s identify %s" %(service, passwd))

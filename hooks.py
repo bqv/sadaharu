@@ -26,11 +26,11 @@ class Hook:
         if self.commands and self.event == "COMMAND":
             def wrapper(usr, to, targ, cmd, msg):
                 if cmd.lower() in self.commands:
-                    func(usr, to, targ, cmd, msg)
+                    func(self.bot, usr, to, targ, cmd, msg)
                 return (usr, to, targ, cmd, msg)
         else:
             def wrapper(*args):
-                return func(*args)
+                return func(self.bot, *args)
         self.__run__ = wrapper
         Events.hooks[self.event].add(self, self.priority, self.disabled)
         del self.priority, self.disabled

@@ -99,10 +99,23 @@ class Handler:
 
     def onnumeric(self, response, user, msg):
         (response, user, msg) = self.bot.event.call("RESPONSE", (response, user, msg))
+        if response == "376":
+            self.onwelcome()
         t = time.localtime()
         timestamp = "[%02d:%02d:%02d] " %(t.tm_hour, t.tm_min, t.tm_sec)
         notice = "%s %s %s" %(response, user['full'], msg)
         self.bot.log.info("%s%s" %(timestamp, notice))
+
+    def onwelcome(self):
+        self.bot.event.call("WELCOME", ())
+        self.bot.server.send("MODE", self.bot.server.nick+" +B")
+        nickserv = self.bot.conf.get('nickserv', None)
+        nickpass = self.bot.conf.get('nickpass', None)
+        if nickpass:
+            if nickserv:
+                self.bot.server.identify(nickpass, nickserv)
+            else:
+                self.bot.server.identify(nickpass)
 
     def onerror(self, user, err):
         self.bot.server.disconnect()

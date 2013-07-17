@@ -29,7 +29,6 @@ class Sadaharu:
 
     def run(self):
         self.server.handshake()
-        self.server.identify(self.conf['nickpass'])
         def loop(s):
             while s.isconnected:
                 for line in s.recv():
