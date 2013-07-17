@@ -71,7 +71,7 @@ class Events:
                 result = hook(*args)
             except:
                 self.bot.log.exception("Wrong number of %s arguments for hook %s (%s)", evname, hook.name, str(hook))
-            if result:
+            if result != None:
                 if len(result) == self.hooks[evname].nargs:
                     args = result
                 else:
