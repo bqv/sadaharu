@@ -6,7 +6,9 @@ import logging, logging.handlers
 import threading, queue
 
 from irc import IRCServer
-from event import Handler, Events
+from handler import Handler
+from hooks import Hook
+from event import Events
 
 class Sadaharu:
     def __init__(self):
@@ -18,6 +20,7 @@ class Sadaharu:
         self.server = IRCServer(self, self.conf['server'], self.conf['port'])
         self.handler = Handler(self)
         self.event = Events(self)
+        Hook.bot = self
         self.plugins = self.getplugins()
 
     def start(self):

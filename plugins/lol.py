@@ -2,12 +2,9 @@
 
 from hooks import Hook
 
-@Hook("PRIVMSG", disabled=True)
-def lol_per_msg(args):
-    (user, to, msg) = args
+@Hook("COMMAND", disabled=False, command="printlol")
+def lol_per_msg(user, to, targ, cmd, msg):
     i = LOL()
-    msg = msg[::-1]
-    return (user, to, msg)
 
 class LOL:
     def __init__(self):

@@ -1,105 +1,4 @@
-# event.py: Classes relating to events or handling
-
-import sys
-import time
-
-class Handler:
-    def __init__(self, bot):
-        self.bot = bot
-        self.registered = {"PING": self.onping, "PRIVMSG": self.onprivmsg,
-                "NOTICE": self.onnotice, "ERROR": self.onerror}
-
-    def handle(self, line):
-        if not line:
-            return
-
-        self.bot.log.debug(line)
-
-        if line[0] == ':':
-            line = line.split(' ', 2)
-            prefix = line[0][1:]
-            line = line[1:]
-        else:
-            prefix = None
-            line = line.split(' ', 1)
-
-        command = line[0]
-        try:
-            params = line[1]
-        except IndexError:
-            params = None
-
-        user = self.getuser(prefix)
-
-        try:
-            (command, user, params) = self.bot.event.call("READ", (command, user, params))
-
-            if command in self.registered.keys():
-                self.registered[command](user, params)
-            elif len(command) == 3 and command.isdigit():
-                self.onnumeric(command, user, params)
-            else:
-                self.bot.log.warning("Couldn't process unregistered command: %s %s", command, params)
-        except CancelEvent:
-            return
-
-    def getuser(self, prefix):
-        if prefix:
-            if '@' in prefix:
-                l = prefix.split('@')
-                host = l[1]
-                if '!' in l[0]:
-                    l = l[0].split('!')
-                    nick = l[0]
-                    user = l[1]
-                else:
-                    nick = l[0]
-                    user = ""
-            else:
-                host = prefix
-                nick = user = ""
-        else:
-            host = nick = user = ""
-        return {'host': host, 'nick': nick, 'user': user, 'full': prefix}
-
-    def onping(self, prefix, params):
-        (params,) = self.bot.event.call("PING", (params,))
-        self.bot.server.send("PONG", params)
-
-    def onprivmsg(self, user, msg):
-        msg = msg.split(' ', 1)
-        to = msg[0]
-        msg = msg[1][1:]
-        (user, to, msg) = self.bot.event.call("PRIVMSG", (user, to, msg))
-        t = time.localtime()
-        timestamp = "[%02d:%02d:%02d] " %(t.tm_hour, t.tm_min, t.tm_sec)
-        message = "[%s] <%s> %s" %(to, user['nick'], msg)
-        self.bot.log.info("%s%s" %(timestamp, message))
-
-    def onnotice(self, user, msg):
-        msg = msg.split(' ', 1)
-        to = msg[0]
-        msg = msg[1][1:]
-        (user, to, msg) = self.bot.event.call("NOTICE", (user, to, msg))
-        t = time.localtime()
-        timestamp = "[%02d:%02d:%02d] " %(t.tm_hour, t.tm_min, t.tm_sec)
-        notice = "[%s] -%s- %s" %(to, user['nick'], msg)
-        self.bot.log.info("%s%s" %(timestamp, notice))
-
-    def onnickchange(self, user, newnick):
-        (newnick,) = self.bot.event.call("NICK", (newnick[1:],))
-        self.bot.server.nick = newnick
-
-    def onnumeric(self, response, user, msg):
-        (response, user, msg) = self.bot.event.call("RESPONSE", (response, user, msg))
-        t = time.localtime()
-        timestamp = "[%02d:%02d:%02d] " %(t.tm_hour, t.tm_min, t.tm_sec)
-        notice = "%s %s %s" %(response, user['full'], msg)
-        self.bot.log.info("%s%s" %(timestamp, notice))
-
-    def onerror(self, user, err):
-        self.bot.server.disconnect()
-        sys.exit(0)
+# event.py: Classes relating to events
 
 class Events:
     class HookObj:
@@ -152,8 +51,8 @@ class Events:
 
     hooks = {"SEND":HookObj("SEND",2), "SENDRAW":HookObj("SENDRAW",1), "READ":HookObj("READ",3),
             "READRAW":HookObj("READRAW",1), "PING":HookObj("PING",1), "PONG":HookObj("PONG",1),
-            "PRIVMSG":HookObj("PRIVMSG",3), "NICK":HookObj("NICK",1), "NOTICE":HookObj("NOTICE",2),
-            "RESPONSE":HookObj("RESPONSE",3)}
+            "PRIVMSG":HookObj("PRIVMSG",4), "NICK":HookObj("NICK",1), "NOTICE":HookObj("NOTICE",2),
+            "RESPONSE":HookObj("RESPONSE",3), "COMMAND":HookObj("COMMAND",5)}
 
     def __init__(self, bot):
         self.bot = bot
@@ -167,12 +66,16 @@ class Events:
 
     def runhooks(self, hookset, evname, args):
         for hook in hookset:
-            result = hook(args)
+            result = None
+            try:
+                result = hook(*args)
+            except:
+                self.bot.log.exception("Wrong number of %s arguments for hook %s (%s)", evname, hook.name, str(hook))
             if result:
                 if len(result) == self.hooks[evname].nargs:
                     args = result
                 else:
-                    self.bot.log.error("Bad return value from hook %s", str(hook))
+                    self.bot.log.error("Bad return value from hook %s (%s)", hook.name, str(hook))
             else:
                 raise CancelEvent(hook.name)
         return args
