@@ -52,7 +52,8 @@ class Events:
     hooks = {"SEND":HookObj("SEND",2),"SENDRAW":HookObj("SENDRAW",1),"READ":HookObj("READ",3),
             "READRAW":HookObj("READRAW",1),"PING":HookObj("PING",1),"PONG":HookObj("PONG",1),
             "PRIVMSG":HookObj("PRIVMSG",4),"NICK":HookObj("NICK",1),"NOTICE":HookObj("NOTICE",2),
-            "RESPONSE":HookObj("RESPONSE",3),"COMMAND":HookObj("COMMAND",5),"WELCOME":HookObj("WELCOME",0)}
+            "RESPONSE":HookObj("RESPONSE",3),"COMMAND":HookObj("COMMAND",5),"WELCOME":HookObj("WELCOME",0),
+            "JOIN":HookObj("JOIN",2),"MODE":HookObj("MODE",4)}
 
     def __init__(self, bot):
         self.bot = bot
