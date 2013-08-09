@@ -5,6 +5,11 @@ from static import *
 class User:
     def __init__(self, bot, nick):
         self.nick = nick
+        self.host = None
+        self.user = None
+        self.name = None
+        self.hops = None
+        self.server = None
         self.modes = set()
         self.chans = {}
         self.prefix = ' '

@@ -5,5 +5,5 @@ from hooks import Hook
 @Hook("WELCOME", priority=Hook.P_URGENT)
 def autojoin(bot):
     for chan in bot.conf['join']:
-        bot.server.send("JOIN", chan)
+        bot.send("JOIN", chan)
     return ()

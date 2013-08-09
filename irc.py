@@ -29,14 +29,6 @@ class IRCServer:
         (line,) = self.bot.event.call("SENDRAW", (line,))
         self.sock.send((line+self.term).encode(self.encoding))
 
-    def send(self, cmd, params=None):
-        (cmd, params) = self.bot.event.call("SEND", (cmd, params))
-        cmd = cmd.upper()
-        if params:
-            self.raw(cmd+" "+params)
-        else:
-            self.raw(cmd)
-
     def recv(self):
         data = self.sock.recv(4096).decode(self.encoding)
         return [self.bot.event.call("READRAW", (l,))[0] for l in data.split(self.term)]
@@ -51,13 +43,13 @@ class IRCServer:
         except socket.timeout:
             pass
         self.sock.settimeout(TIMEOUT)
-        self.send("NICK", nick)
-        self.send("USER", "%s %s %s %s" %(user, host, server, name))
+        self.raw("NICK "+nick)
+        self.raw("USER %s %s %s %s" %(user, host, server, name))
         if pswd:
-            self.send("PASS", pswd)
+            self.raw("PASS "+pswd)
         for line in self.recv():
             self.bot.handler.handle(line)
 
     def identify(self, passwd, service="NickServ"):
-        self.send("PRIVMSG", "%s identify %s" %(service, passwd))
+        self.raw("PRIVMSG %s identify %s" %(service, passwd))
 

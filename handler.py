@@ -2,7 +2,6 @@
 
 import sys
 import time
-import re
 
 from event import CancelEvent
 from static import *
@@ -15,7 +14,7 @@ class Handler:
         self.cmdprefix = bot.conf['prefix']
         self.registered = {"PING": self.onping, "PRIVMSG": self.onprivmsg,
                 "NOTICE": self.onnotice, "ERROR": self.onerror, "JOIN": self.onjoin,
-                "NICK": self.onnickchange, "MODE": self.onmode}
+                "NICK": self.onnickchange, "MODE": self.onmode, "INVITE": self.oninvite}
 
     def handle(self, line):
         if not line:
@@ -72,20 +71,25 @@ class Handler:
 
     def onping(self, prefix, params):
         (params,) = self.bot.event.call("PING", (params,))
-        self.bot.server.send("PONG", params)
+        self.bot.send("PONG", params)
 
     def onprivmsg(self, user, msg):
         msg = msg.split(' ', 1)
         to = msg[0]
         msg = rawmsg = msg[1][1:]
-        (targ,msg) = gettarget(user['nick'], msg)
+        nick = user['nick']
+        (targ,msg) = gettarget(nick, msg)
         (user, to, targ, msg) = self.bot.event.call("PRIVMSG", (user, to, targ, msg))
         if iscommand(self.cmdprefix, msg):
             self.bot.event.call("COMMAND", (user, to, targ)+getcommand(self.cmdprefix, msg))
         t = time.localtime()
         timestamp = "[%02d:%02d:%02d] " %(t.tm_hour, t.tm_min, t.tm_sec)
-        message = "[%s] <%s> %s" %(to, user['nick'], rawmsg)
+        message = "[%s] <%s> %s" %(to, nick, rawmsg)
         self.bot.log.info("%s%s" %(timestamp, message))
+        if not to in self.bot.chans.keys():
+            self.bot.chans[to] = Channel(self.bot, to)
+        self.bot.chans[to].getlog(nick).appendleft(rawmsg)
+        self.bot.chans[to].getlog("*all").appendleft("<%s> %s" % (nick, rawmsg))
 
     def onnotice(self, user, msg):
         msg = msg.split(' ', 1)
@@ -112,12 +116,18 @@ class Handler:
         if not nick in self.bot.users.keys():
             self.bot.users[nick] = User(self.bot, nick)
         self.bot.users[nick].chans[chan] = set()
+        if nick == self.bot.getnick():
+            self.bot.send("MODE", chan)
+            self.bot.send("WHO", chan)
+
+    def oninvite(self, user, params):
+        me,chan = params.split()
+        assert me == self.bot.getnick()
+        (user, me, chan) = self.bot.event.call("INVITE", (user, me, chan))
+        self.bot.send("JOIN", chan)
 
     def onmode(self, user, params):
         p = params.split()
-        def unpack(x):
-            n = (re.sub("([+-])([A-Za-z]+)([A-Za-z])", "\g<1>\g<2>\g<1>\g<3>", x),x)
-            return re.findall('..',n[0]) if n[0] == n[1] else unpack(n[0]);
         to = p[0]
         modes = unpack(p[1].lstrip(':'))
         users = p[2:]
@@ -128,13 +138,13 @@ class Handler:
                 if m[0] == '+':
                     self.bot.users[u].chans[to].add(m[1])
                 else:
-                    self.bot.users[u].chans[to].remove(m[1])
+                    self.bot.users[u].chans[to].discard(m[1])
                 self.bot.users[u].genprefix(to)
             elif to == self.bot.getnick():
                 if m[0] == '+':
                     self.bot.users[to].modes.add(m[1])
                 else:
-                    self.bot.users[to].modes.remove(m[1])
+                    self.bot.users[to].modes.discard(m[1])
             else:
                 if m[0] == '+':
                     self.bot.chans[to].modes.add(m[1])
@@ -143,8 +153,14 @@ class Handler:
 
     def onnumeric(self, response, user, msg):
         (response, user, msg) = self.bot.event.call("RESPONSE", (response, user, msg))
+        me,msg = msg.split(' ', 1)
+        assert me == self.bot.getnick()
         if response == "001":
             self.onwelcome()
+        elif response == "324":
+            self.onchanmodes(msg)
+        elif response == "352":
+            self.onwhoreply(msg)
         elif response == "353":
             self.onnames(msg)
         t = time.localtime()
@@ -155,7 +171,7 @@ class Handler:
     def onwelcome(self):
         self.bot.event.call("WELCOME", ())
         self.bot.users[self.bot.getnick()] = User(self.bot, self.bot.getnick())
-        self.bot.server.send("MODE", self.bot.getnick()+" +B")
+        self.bot.send("MODE", self.bot.getnick()+" +B")
         nickserv = self.bot.conf.get('nickserv', None)
         nickpass = self.bot.conf.get('nickpass', None)
         if nickpass:
@@ -164,18 +180,43 @@ class Handler:
             else:
                 self.bot.server.identify(nickpass)
 
+    def onwhoreply(self, params):
+        chan,name,host,server,nick,state,hops,rname = params.split(' ',7)
+        if not nick in self.bot.users.keys():
+            self.bot.users[nick] = User(self.bot, nick)
+        self.bot.users[nick].host = host
+        self.bot.users[nick].user = name
+        self.bot.users[nick].name = rname
+        self.bot.users[nick].hops = hops
+        self.bot.users[nick].server = server
+        self.bot.users[nick].chans[chan] = set()
+        for m in state:
+            if m in umodes.values():
+                m, = [l for l,s in umodes.items() if s == m]
+                self.bot.users[nick].chans[chan].add(m)
+            else:
+                self.bot.users[nick].modes.add(m)
+
     def onnames(self, params):
-        args = params.split(' ', 3)
-        assert args[0] == self.bot.getnick()
-        chanstyle = args[1]
-        chan = args[2]
-        names = args[3][1:].split()
+        args = params.split(' ', 2)
+        chanstyle = args[0]
+        chan = args[1]
+        names = args[2][1:].split()
         for name in names:
             nick = name.lstrip(''.join(umodes.values()))
             self.onjoin(self.getuser(nick), ':'+chan)
             prefixes = name[0:len(name)-len(nick)]
             for p in prefixes:
-                self.bot.users[nick].chans[chan].add(p)
+                mode, = [m for m,s in umodes.items() if s == p]
+                self.bot.users[nick].chans[chan].add(mode)
+
+    def onchanmodes(self, params):
+        chan, modes, params = params.split(' ', 2)
+        modes = unpack(modes)
+        self.bot.chans[chan].modes = set()
+        for m in modes:
+            assert m[0] == '+'
+            self.bot.chans[chan].modes.add(m[1])
 
     def onerror(self, user, err):
         self.bot.server.disconnect()
