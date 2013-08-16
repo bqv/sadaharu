@@ -30,8 +30,6 @@ class Handler:
             prefix = None
             line = line.split(' ', 1)
 
-        if len(line) == 0: #TODO: investigate
-            return self.bot.log.error("ERR: No text")
         command = line[0]
         try:
             params = line[1]
