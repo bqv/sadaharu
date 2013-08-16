@@ -31,6 +31,8 @@ class IRCServer:
 
     def recv(self):
         data = self.sock.recv(4096).decode(self.encoding)
+        while data[-2:] != self.term:
+            data += self.sock.recv(1024).decode(self.encoding)
         return [self.bot.event.call("READRAW", (l,))[0] for l in data.split(self.term)]
     
     def handshake(self, user="sadaharu", name="Sadaharu", nick="sadaharu", pswd=None, host="-", server="-"):
