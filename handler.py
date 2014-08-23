@@ -20,7 +20,7 @@ class Handler:
         if not line:
             return
 
-        self.bot.log.debug(line)
+        self.bot.log.debug("[%s] "%(self.bot.name,)+line)
 
         if line[0] == ':':
             line = line.split(' ', 2)
@@ -82,10 +82,7 @@ class Handler:
         (user, to, targ, msg) = self.bot.event.call("PRIVMSG", (user, to, targ, msg))
         if iscommand(self.cmdprefix, msg):
             self.bot.event.call("COMMAND", (user, to, targ)+getcommand(self.cmdprefix, msg))
-        t = time.localtime()
-        timestamp = "[%02d:%02d:%02d] " %(t.tm_hour, t.tm_min, t.tm_sec)
-        message = "[%s] <%s> %s" %(to, nick, rawmsg)
-        self.bot.log.info("%s%s" %(timestamp, message))
+        self.log("[%s] <%s> %s" %(to, nick, rawmsg))
         if not to in self.bot.chans.keys():
             self.bot.chans[to] = Channel(self.bot, to)
         self.bot.chans[to].getlog(nick).appendleft(rawmsg)
@@ -96,10 +93,7 @@ class Handler:
         to = msg[0]
         msg = msg[1][1:]
         (user, to, msg) = self.bot.event.call("NOTICE", (user, to, msg))
-        t = time.localtime()
-        timestamp = "[%02d:%02d:%02d] " %(t.tm_hour, t.tm_min, t.tm_sec)
-        notice = "[%s] -%s- %s" %(to, user['nick'], msg)
-        self.bot.log.info("%s%s" %(timestamp, notice))
+        self.log("[%s] -%s- %s" %(to, user['nick'], msg))
 
     def onnickchange(self, user, newnick):
         (newnick,) = self.bot.event.call("NICK", (newnick[1:],))
@@ -142,7 +136,9 @@ class Handler:
                 self.bot.users[u].genprefix(to)
             elif to == self.bot.getnick():
                 if m[0] == '+':
-                    self.bot.users[to].modes.add(m[1])
+                    try:
+                        self.bot.users[to].modes.add(m[1])
+                    except: pass
                 else:
                     self.bot.users[to].modes.discard(m[1])
             else:
@@ -163,10 +159,7 @@ class Handler:
             self.onwhoreply(msg)
         elif response == "353":
             self.onnames(msg)
-        t = time.localtime()
-        timestamp = "[%02d:%02d:%02d] " %(t.tm_hour, t.tm_min, t.tm_sec)
-        notice = "%s %s %s" %(response, user['full'], msg)
-        self.bot.log.info("%s%s" %(timestamp, notice))
+        self.log("%s %s %s" %(response, user['full'], msg))
 
     def onwelcome(self):
         self.bot.event.call("WELCOME", ())
@@ -211,7 +204,11 @@ class Handler:
                 self.bot.users[nick].chans[chan].add(mode)
 
     def onchanmodes(self, params):
-        chan, modes, params = params.split(' ', 2)
+        print(params)
+        try:
+            chan, modes, params = params.split(' ', 2)
+        except ValueError:
+            chan, modes = params.split(' ', 1)
         modes = unpack(modes)
         self.bot.chans[chan].modes = set()
         for m in modes:
@@ -221,4 +218,9 @@ class Handler:
     def onerror(self, user, err):
         self.bot.server.disconnect()
         sys.exit(0)
+
+    def log(self, message):
+        t = time.localtime()
+        timestamp = "[%02d:%02d:%02d]" %(t.tm_hour, t.tm_min, t.tm_sec)
+        self.bot.log.info("%s [%s] %s" %(timestamp, self.bot.name, message))
 

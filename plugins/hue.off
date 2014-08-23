@@ -1,0 +1,15 @@
+# hue.py: A hue plugin
+
+import traceback
+
+from hooks import Hook
+
+@Hook("PRIVMSG")
+def hue(bot, user, to, targ, msg):
+    nick = user['nick']
+
+    if msg[:3].lower() == "hue" and to.lower() not in ["#superfriends",]:
+        import time
+        time.sleep(0.2)
+        bot.privmsg(to, msg.lower().replace("hue", "saturation"))
+    return (user,to,targ,msg)

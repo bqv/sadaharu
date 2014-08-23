@@ -69,7 +69,7 @@ class Events:
         for hook in hookset:
             result = None
             try:
-                result = hook(*args)
+                result = hook(self.bot, *args)
             except TypeError:
                 self.bot.log.exception("Wrong number of %s arguments for hook %s (%s)", evname, hook.name, str(hook))
             if result != None:
