@@ -15,9 +15,10 @@ from hooks import Hook
 from event import Events, AbstractEvent
 
 class Bot(threading.Thread):
-    def __init__(self, ring, name, conf):
+    def __init__(self, master, name, conf):
         threading.Thread.__init__(self)
-        self.ring = ring
+        self.master = master
+        self.ring = self.master.bots
         self.name = name
         self.conf = conf
         self.data = dict()
@@ -56,11 +57,7 @@ class Bot(threading.Thread):
             self.send("NOTICE", "%s :%s" %(targ, line))
 
     def loadplugins(self):
-        self.cdir = os.path.dirname(os.path.realpath(__file__))
-        self.pdir = os.path.join(self.cdir, "plugins")
-        sys.path.insert(0, self.cdir)
-        sys.path.insert(0, self.pdir)
-        plugins = set([__import__(p[:-3]) for p in os.listdir(self.pdir) if p.endswith(".py")])
+        plugins = set([__import__(p[:-3]) for p in os.listdir(self.master.pdir) if p.endswith(".py")])
         plugincount = len(plugins)
 
     def getnick(self):
@@ -87,6 +84,10 @@ class Bot(threading.Thread):
 
 class Sadaharu:
     def __init__(self):
+        self.cdir = os.path.dirname(os.path.realpath(__file__))
+        self.pdir = os.path.join(self.cdir, "plugins")
+        sys.path.insert(0, self.cdir)
+        sys.path.insert(0, self.pdir)
         self.conf = self.loadconfig("conf.json")
         self.bots = {}
         for kv in self.conf.items():
@@ -95,7 +96,7 @@ class Sadaharu:
     def addbot(self, name, botconf):
         conf = list(self.loadconfig("defconf.json").values())[0]
         conf.update(botconf)
-        self.bots[name] = Bot(self.bots, name, conf)
+        self.bots[name] = Bot(self, name, conf)
 
     def loadconfig(self, filename):
         text = open(filename).read()
