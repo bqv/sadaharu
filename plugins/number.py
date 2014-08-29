@@ -93,140 +93,140 @@ class Quaternion():
 def getnum(bot):
     return bot.data.get("number", Quaternion())
 
-def saynum(bot, to):
-    bot.privmsg(to, "The number is now %s" %(bot.data['number'],))
+def saynum(bot, dest):
+    bot.privmsg(dest, "The number is now %s" %(bot.data['number'],))
 
 @Hook('COMMAND', commands=["inc",])
-def add(bot, user, to, targ, cmd, msg):
+def add(bot, ev):
     bot.data['number'] = getnum(bot)+Quaternion(1,0,0,0)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["iinc",])
-def iadd(bot, user, to, targ, cmd, msg):
+def iadd(bot, ev):
     bot.data['number'] = getnum(bot)+Quaternion(0,1,0,0)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["jinc",])
-def jadd(bot, user, to, targ, cmd, msg):
+def jadd(bot, ev):
     bot.data['number'] = getnum(bot)+Quaternion(0,0,1,0)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["kink",])
-def kadd(bot, user, to, targ, cmd, msg):
+def kadd(bot, ev):
     bot.data['number'] = getnum(bot)+Quaternion(0,0,0,1)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 
 @Hook('COMMAND', commands=["sub",])
-def subtract(bot, user, to, targ, cmd, msg):
+def subtract(bot, ev):
     bot.data['number'] = getnum(bot)+Quaternion(-1,0,0,0)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["isub",])
-def isubtract(bot, user, to, targ, cmd, msg):
+def isubtract(bot, ev):
     bot.data['number'] = getnum(bot)+Quaternion(0,-1,0,0)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["jsub",])
-def jsubtract(bot, user, to, targ, cmd, msg):
+def jsubtract(bot, ev):
     bot.data['number'] = getnum(bot)+Quaternion(0,0,-1,0)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["ksub",])
-def ksubtract(bot, user, to, targ, cmd, msg):
+def ksubtract(bot, ev):
     bot.data['number'] = getnum(bot)+Quaternion(0,0,0,-1)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 
 @Hook('COMMAND', commands=["mul",])
-def multiply(bot, user, to, targ, cmd, msg):
+def multiply(bot, ev):
     bot.data['number'] = getnum(bot)*Quaternion(2,0,0,0)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["imul",])
-def imultiply(bot, user, to, targ, cmd, msg):
+def imultiply(bot, ev):
     bot.data['number'] = getnum(bot)*Quaternion(0,2,0,0)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["jmul",])
-def jmultiply(bot, user, to, targ, cmd, msg):
+def jmultiply(bot, ev):
     bot.data['number'] = getnum(bot)*Quaternion(0,0,2,0)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["kmul",])
-def kmultiply(bot, user, to, targ, cmd, msg):
+def kmultiply(bot, ev):
     bot.data['number'] = getnum(bot)*Quaternion(0,0,0,2)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 
 @Hook('COMMAND', commands=["div",])
-def divide(bot, user, to, targ, cmd, msg):
+def divide(bot, ev):
     bot.data['number'] = getnum(bot)*Quaternion(2,0,0,0).__invert__()
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["idiv",])
-def idivide(bot, user, to, targ, cmd, msg):
+def idivide(bot, ev):
     bot.data['number'] = getnum(bot)*Quaternion(0,2,0,0).__invert__()
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["jdiv",])
-def jdivide(bot, user, to, targ, cmd, msg):
+def jdivide(bot, ev):
     bot.data['number'] = getnum(bot)*Quaternion(0,0,2,0).__invert__()
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["kdiv",])
-def kdivide(bot, user, to, targ, cmd, msg):
+def kdivide(bot, ev):
     bot.data['number'] = getnum(bot)*Quaternion(0,0,0,2).__invert__()
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 
 @Hook('COMMAND', commands=["neg",])
-def negate(bot, user, to, targ, cmd, msg):
+def negate(bot, ev):
     bot.data['number'] = getnum(bot)*Quaternion(-1,0,0,0)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=[])
-def square(bot, user, to, targ, cmd, msg):
+def square(bot, ev):
     bot.data['number'] = getnum(bot)*getnum(bot)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["num",])
-def number(bot, user, to, targ, cmd, msg):
+def number(bot, ev):
     getnum(bot)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["diff",])
-def differentiate(bot, user, to, targ, cmd, msg):
+def differentiate(bot, ev):
     bot.data['number'] = Quaternion(0,0,0,0)
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["conj",])
-def conjugate(bot, user, to, targ, cmd, msg):
+def conjugate(bot, ev):
     bot.data['number'] = getnum(bot).__conj__()
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["norm",])
-def normalize(bot, user, to, targ, cmd, msg):
+def normalize(bot, ev):
     bot.data['number'] = getnum(bot).__norm__()
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["inv",])
-def invert(bot, user, to, targ, cmd, msg):
+def invert(bot, ev):
     bot.data['number'] = getnum(bot).__invert__()
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["exp",])
-def exponentiate(bot, user, to, targ, cmd, msg):
+def exponentiate(bot, ev):
     bot.data['number'] = getnum(bot).__exp__()
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["log",])
-def logarithm(bot, user, to, targ, cmd, msg):
+def logarithm(bot, ev):
     bot.data['number'] = getnum(bot).__log__()
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev
 @Hook('COMMAND', commands=["sqrt","root"])
-def squareroot(bot, user, to, targ, cmd, msg):
+def squareroot(bot, ev):
     bot.data['number'] = getnum(bot).__sqrt__()
-    saynum(bot,to)
-    return (user, to, targ, cmd, msg)
+    saynum(bot,ev.dest)
+    return ev

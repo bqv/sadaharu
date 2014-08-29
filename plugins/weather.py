@@ -9,9 +9,9 @@ except:
     from urllib import pathname2url as urlencode
 
 @Hook('COMMAND')
-def weather(bot, user, to, targ, cmd, msg):
-    wv = list(getweather(msg))
-    bot.privmsg(to, "%s: %s" %(targ, wv[0]))
+def weather(bot, ev):
+    wv = list(getweather(ev.params))
+    bot.privmsg(ev.dest, "%s: %s" %(ev.user.nick, wv[0]))
 #    for w in wv:
 #        __import__('sys').stdout.buffer.write((w+'\n').encode('utf-8'))
 

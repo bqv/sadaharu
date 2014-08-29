@@ -42,73 +42,84 @@ class IRCterpreter(code.InteractiveConsole):
         self.flushbuf()
 
 @Hook("COMMAND", scope=1)
-def raw(bot, user, to, targ, cmd, msg):
-    bot.server.raw(msg)
-    return (user,to,targ,cmd,msg)
+def raw(bot, ev):
+    line = bytes(ev.params, "utf-8").decode("unicode_escape")
+    bot.server.raw(line)
+    return ev
 
 @Hook("COMMAND", commands=["exec"], scope=1)
-def py(bot, user, to, targ, cmd, msg):
-    nick = user['nick']
+def py(bot, ev):
     ipring = bot.data.get("interp", None)
     if not ipring:
         bot.data["interp"] = ipring = {'env': locals()}
         ipring['env'].update(globals())
-        ipring['env'].update({'say': lambda x: bot.privmsg(to, x)})
-        ipring['env'].update({'notice': lambda x: bot.notice(to, x)})
-    ip = ipring.get(nick, None)
+        ipring['env'].update({'say': lambda x: bot.privmsg(ev.dest, x)})
+        ipring['env'].update({'notice': lambda x: bot.notice(ev.dest, x)})
+    ip = ipring.get(ev.user.nick, None)
     if not ip:
-        ipring[nick] = ip = IRCterpreter(ipring['env'], bot)
-    ip.run(nick, to, msg)
-    return (user,to,targ,cmd,msg)
+        ipring[ev.user.nick] = ip = IRCterpreter(ipring['env'], bot)
+    ip.run(ev.user.nick, ev.dest, ev.params)
+    return ev
 
 @Hook("COMMAND", commands=["bash"], scope=1)
-def shell(bot, user, to, targ, cmd, msg):
+def shell(bot, ev):
     def process():
-        print("Running: "+msg)
-        with subprocess.Popen(["bash","-c",msg], stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as p:
+        print("Running: "+ev.params)
+        with subprocess.Popen(["bash","-c",ev.params], stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as p:
             for line in iter(p.stdout.readline, b''):
                 bot.privmsg(to, line.decode('utf8').rstrip())
             print("Process returned: %d"%(p.wait(),))
     threading.Thread(target=process).start()
-    return (user,to,targ,cmd,msg)
+    return ev
 
 @Hook("PRIVMSG")
-def short(bot, user, to, targ, msg):
-    nick = user['nick']
-    if msg[:4] == ">>> ":
-        if nick in bot.conf.get("wheel", []):
-            py(bot, user, to, targ, ">>>", msg[4:])
+def short(bot, ev):
+    if ev.msg[:4] == ">>> ":
+        if ev.user.nick in bot.conf.get("wheel", []):
+            ev.params = ev.msg[4:]
+            ev.cmd = ">>>"
+            py(bot, ev)
         else:
-            print("Access denied for "+nick)
-    if msg[:3] == ":: ":
-        if nick in bot.conf.get("wheel", []):
-            raw(bot, user, to, targ, "::", msg[3:])
+            print("Access denied for "+ev.user.nick)
+    if ev.msg[:3] == ":: ":
+        if ev.user.nick in bot.conf.get("wheel", []):
+            ev.params = ev.msg[3:]
+            ev.cmd = "::"
+            raw(bot, ev)
         else:
-            print("Access denied for "+nick)
-    if msg[:2] == "$ ":
-        if nick in bot.conf.get("wheel", []):
-            shell(bot, user, to, targ, "$", msg[2:])
+            print("Access denied for "+ev.user.nick)
+    if ev.msg[:2] == "$ ":
+        if ev.user.nick in bot.conf.get("wheel", []):
+            ev.params = ev.msg[2:]
+            ev.cmd = "$"
+            shell(bot, ev)
         else:
-            print("Access denied for "+nick)
-    return (user,to,targ,msg)
+            print("Access denied for "+ev.user.nick)
+    return ev
 
 @Hook("COMMAND", scope=1)
-def privmsg(bot, user, to, targ, cmd, msg):
-    bot.send("PRIVMSG", msg)
-    return (user,to,targ,cmd,msg)
+def say(bot, ev):
+    line = bytes(ev.params, "utf-8").decode("unicode_escape")
+    bot.privmsg(to, line)
+    return ev
 
 @Hook("COMMAND", scope=1)
-def part(bot, user, to, targ, cmd, msg):
-    bot.send("PART", msg)
-    return (user,to,targ,cmd,msg)
+def privmsg(bot, ev):
+    bot.send("PRIVMSG", ev.params)
+    return ev
 
 @Hook("COMMAND", scope=1)
-def quit(bot, user, to, targ, cmd, msg):
-    bot.send("QUIT", msg)
-    bot.server.disconnect()
-    return (user,to,targ,cmd,msg)
+def part(bot, ev):
+    bot.send("PART", ev.params)
+    return ev
+
+@Hook("COMMAND", scope=1)
+def quit(bot, ev):
+    bot.send("QUIT", ev.params)
+    bot.quit()
+    return ev
 
 @Hook("SENDRAW")
-def onraw(bot, line):
-    print("[%s]=> "%(bot.name,)+line)
-    return (line,)
+def onraw(bot, ev):
+    print("[%s]=> "%(bot.name,)+ev.line)
+    return True

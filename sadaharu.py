@@ -2,6 +2,7 @@
 # sadaharu.py: Main file - This project is subject to the terms of MPL v2.0; see LICENSE
 
 import sys, os
+import re
 import json
 import queue
 import select
@@ -11,7 +12,7 @@ import threading, queue
 from irc import IRCServer
 from handler import Handler
 from hooks import Hook
-from event import Events
+from event import Events, AbstractEvent
 
 class Bot(threading.Thread):
     def __init__(self, ring, name, conf):
@@ -26,8 +27,8 @@ class Bot(threading.Thread):
         self.log.addHandler(logging.StreamHandler(sys.stdout))
         self.enabled = not self.conf.get('disabled', False)
         self.server = IRCServer(self, self.conf['server'], self.conf['port'], self.conf.get('ssl', False))
-        self.handler = Handler(self)
         self.event = Events(self)
+        self.handler = Handler(self)
         self.sendqueue = queue.PriorityQueue()
         self.chans = dict()
         self.users = dict()
@@ -66,23 +67,40 @@ class Bot(threading.Thread):
         return self.server.nick
 
     def send(self, cmd, params=None):
-        (cmd, params) = self.event.call("SEND", (cmd, params))
-        self.log.debug("[%s]-> "%(self.name,)+cmd+(" "+params if params else ""))
-        cmd = cmd.upper()
+        class SendEvent(AbstractEvent):
+            name = "SEND"
+            def __init__(self, oper, params):
+                AbstractEvent.__init__(self)
+                self.oper = oper.upper()
+                self.params = params
+        sev = SendEvent(cmd, params).fire(self)
+        self.log.debug("[%s]-> "%(self.name,)+sev.oper+(" "+sev.params if sev.params else ""))
         if params:
-            self.sendqueue.put(cmd+" "+params)
+            self.sendqueue.put(sev.oper+" "+sev.params)
         else:
-            self.sendqueue.put(cmd)
+            self.sendqueue.put(sev.oper)
+    
+    def quit(self):
+        for bot in self.ring.values():
+            bot.server.disconnect()
+        sys.exit(0)
 
 class Sadaharu:
     def __init__(self):
-        self.conf = json.loads(open("conf.json").read())
+        self.conf = self.loadconfig("conf.json")
         self.bots = {}
         for kv in self.conf.items():
             self.addbot(*kv)
             
-    def addbot(self, name, conf):
+    def addbot(self, name, botconf):
+        conf = list(self.loadconfig("defconf.json").values())[0]
+        conf.update(botconf)
         self.bots[name] = Bot(self.bots, name, conf)
+
+    def loadconfig(self, filename):
+        text = open(filename).read()
+        stripped = re.sub("(//.*)?\n *", "", text)
+        return json.loads(stripped)
 
     def start(self):
         for bot in self.bots.values():

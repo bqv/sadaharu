@@ -1,7 +1,5 @@
 # hooks.py: Classes relating to event hooks
 
-import copy
-
 from event import Events
 
 class Hook:
@@ -25,22 +23,23 @@ class Hook:
         self.name = func.__name__
         self.commands.insert(0, self.name)
         if self.event == "COMMAND":
-            def wrapper(bot, usr, to, targ, cmd, msg):
+            def wrapper(bot, ev):
                 import traceback, sys
-                if self.scope > 0 and usr['nick'] not in bot.conf.get("wheel", []):
-                    print("Access denied for "+usr['nick'])
-                    return
-                if cmd.lower() in self.commands:
-                    try:
-                        func(bot, usr, to, targ, cmd, msg)
-                    except:
-                        errtype, value, tb = sys.exc_info()
-                        bot.privmsg(to, "\x02[;_;]\x02 %s: %s" %(errtype.__name__, value))
-                        traceback.print_exc()
-                return (usr, to, targ, cmd, msg)
+                if ev.cmd.lower() in self.commands:
+                    if self.scope > 0 and ev.user.nick not in bot.conf["wheel"]:
+                        print("Access denied for "+ev.user.nick+" (%s)"%(self.scope,))
+                        return
+                    else:
+                        try:
+                            func(bot, ev)
+                        except:
+                            errtype, value, tb = sys.exc_info()
+                            bot.privmsg(ev.dest, "\x02[;_;]\x02 %s: %s" %(errtype.__name__, value))
+                            traceback.print_exc()
+                return ev
         else:
-            def wrapper(bot, *args):
-                return func(bot, *args)
+            def wrapper(bot, ev):
+                return func(bot, ev)
         self.__run__ = wrapper
         Events.hooks[self.event].add(self, self.priority, self.disabled)
         del self.priority, self.disabled

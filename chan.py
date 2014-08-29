@@ -7,7 +7,7 @@ class Channel:
     def __init__(self, bot, name):
         self.name = name
         self.modes = set()
-        self.log = {"*all": deque([], 256)}
+        self.log = {"*all": deque([], 16386)}
 
     def users(self):
         return [x for n,x in self.bot.users.items() if self.name in x.chans.keys()]

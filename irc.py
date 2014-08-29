@@ -6,6 +6,8 @@ import time
 import select
 import socket
 
+from event import AbstractEvent
+
 TIMEOUT = 1800
 
 class IRCServer:
@@ -32,7 +34,12 @@ class IRCServer:
         self.sock.close()
 
     def raw(self, line):
-        (line,) = self.bot.event.call("SENDRAW", (line,))
+        class RSendEvent(AbstractEvent):
+            name = "SENDRAW"
+            def __init__(self, line):
+                AbstractEvent.__init__(self)
+                self.line = line
+        line = RSendEvent(line).fire(self.bot).line
         try:
             self.sock.send((line+self.term).encode(self.encoding))
         except:
@@ -41,10 +48,15 @@ class IRCServer:
             self.disconnect()
 
     def recv(self):
+        class RReadEvent(AbstractEvent):
+            name = "READRAW"
+            def __init__(self, line):
+                AbstractEvent.__init__(self)
+                self.line = line
         data = self.sock.recv(4096).decode(self.encoding, "replace")
         while data[-2:] != self.term:
             data += self.sock.recv(1024).decode(self.encoding, "replace")
-        return [self.bot.event.call("READRAW", (l,))[0] for l in data.split(self.term)]
+        return [RReadEvent(l).fire(self.bot).line for l in data.split(self.term)]
     
     def handshake(self, user="sadaharu", name="Sadaharu", host="*", server="*"):
         self.sock.settimeout(16)

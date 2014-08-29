@@ -3,7 +3,7 @@
 from hooks import Hook
 
 @Hook("WELCOME", priority=Hook.P_URGENT)
-def autojoin(bot):
+def autojoin(bot, ev):
     for chan in bot.conf['join']:
         bot.send("JOIN", chan)
-    return ()
+    return ev

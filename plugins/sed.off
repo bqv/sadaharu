@@ -51,33 +51,33 @@ def get_message(bot, sedregex, nick, chan, qual=None):
     return ""
 
 @Hook("PRIVMSG")
-def sed(bot, user, to, targ, msg):
-    nick = user['nick']
-
+def sed(bot, ev):
     s = type('SedObject', tuple(), {})
     
-    if not SED_REGEX.match(msg):
-        return (user,to,targ,msg)
+    if not SED_REGEX.match(ev.msg):
+        return ev
 
-    groups = SED_REGEX.match(msg).groups()
+    groups = SED_REGEX.match(ev.msg).groups()
     populate(s, groups)
     set_flags(s, s.flags)
 
     if s.target:
         nick = s.target
+    else:
+        nick = ev.user.nick
 
     if s.qual:
-        s.msg = get_message(bot, s.to_replace, nick, to, qual=s.qual)
+        s.msg = get_message(bot, s.to_replace, nick, ev.dest, qual=s.qual)
     else:
-        s.msg = get_message(bot, s.to_replace, nick, to)
+        s.msg = get_message(bot, s.to_replace, nick, ev.dest)
 
     if not s.msg:
-        return (user,to,targ,msg)
+        return ev
 
     try:
         new_msg = re.sub(s.to_replace, s.replacement, s.msg, s.count, s.flags)
-        bot.privmsg(to, "<%s> %s" % (nick, new_msg))
-        return (user,to,targ,msg)
+        bot.privmsg(ev.dest, "<%s> %s" % (nick, new_msg))
+        return ev
     except BaseException:
         traceback.print_exc()
 
