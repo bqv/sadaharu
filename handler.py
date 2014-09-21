@@ -81,6 +81,7 @@ class Handler:
                     self.params = l[1]
                 else:
                     self.cmd = l[0]
+                    self.params = ""
             def fire(self, bot):
                 print(self.cmd)
                 AbstractEvent.fire(self, bot)

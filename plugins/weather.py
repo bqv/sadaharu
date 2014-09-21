@@ -29,7 +29,7 @@ class Weather:
                 elif z.name.endswith("units"):
                     assert z.attrs['distance'] == "mi" # mi * 1.609344 = km
                     assert z.attrs['pressure'] == "in" # ppsi * 68.9475729 = mB
-                    assert z.attrs['speed'] == "mph" # mph * 1.609344 = kmph, mph * 0.44704 = m/s
+                    assert z.attrs['speed'] == "mph" # mph * 1.609344 = km/h, mph * 0.44704 = m/s
                 elif z.name.endswith("wind"):
                     try:
                         c_chill = "%d\xb0C" %(round(((int(z.attrs['chill']) - 32) * 5) / 9))
@@ -42,7 +42,7 @@ class Weather:
                     except ValueError:
                         self.direction = None
                     try:
-                        kmph_speed = "%dkmph" %(round(int(z.attrs['speed']) * 1.609344))
+                        kmph_speed = "%dkm/h" %(round(int(z.attrs['speed']) * 1.609344))
                         mps_speed = "%dm/s" %(round(int(z.attrs['speed']) * 0.44704))
                         mph_speed = "%smph" %(z.attrs['speed'])
                         self.wspeed = "%s (%s,%s)" %(kmph_speed, mph_speed, mps_speed)

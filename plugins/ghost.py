@@ -6,22 +6,20 @@ import math
 
 from hooks import Hook
 
-nicks = ["me", "n_n", "_"]
-
 @Hook("JOIN")
 def readd(bot, ev):
-    nl = list(nicks)
+    nicks = list(bot.conf.get('protected', []))
     try:
-        nl.remove(bot.getnick().lower())
+        nicks.remove(bot.getnick().lower())
     except:
         pass
-    if str(ev.user.nick).lower() in nl:
+    if str(ev.user.nick).lower() in nicks:
         bot.send("NICKSERV", "GHOST "+ev.user.nick+" seroxat")
     return ev
 
 @Hook("NICK")
 def readd(bot, ev):
-    if str(ev.params).lower() in nicks and ev.user.nick != bot.getnick():
+    if str(ev.params).lower() in bot.conf.get('protected', []) and ev.user.nick != bot.getnick():
         bot.send("NICKSERV", "GHOST "+ev.params+" seroxat")
     return ev
 

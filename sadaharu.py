@@ -25,7 +25,7 @@ class Bot(threading.Thread):
         self.log = logging.getLogger(self.name)
         self.log.setLevel(logging.INFO)
         self.log.addHandler(logging.handlers.RotatingFileHandler(self.name+".log", 'a', 16*1024*1024, 99))
-        self.log.addHandler(logging.StreamHandler(sys.stdout))
+        self.log.addHandler(logging.StreamHandler(sys.__stdout__))
         self.enabled = not self.conf.get('disabled', False)
         self.server = IRCServer(self, self.conf['server'], self.conf['port'], self.conf.get('ssl', False))
         self.event = Events(self)
@@ -76,6 +76,9 @@ class Bot(threading.Thread):
             self.sendqueue.put(sev.oper+" "+sev.params)
         else:
             self.sendqueue.put(sev.oper)
+
+    def stop(self):
+        self.server.disconnect()
     
     def quit(self):
         for bot in self.ring.values():

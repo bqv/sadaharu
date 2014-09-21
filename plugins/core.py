@@ -53,6 +53,7 @@ def py(bot, ev):
     if not ipring:
         bot.data["interp"] = ipring = {'env': locals()}
         ipring['env'].update(globals())
+        ipring['env'].update({'bot': bot})
         ipring['env'].update({'say': lambda x: bot.privmsg(ev.dest, x)})
         ipring['env'].update({'notice': lambda x: bot.notice(ev.dest, x)})
     ip = ipring.get(ev.user.nick, None)
@@ -67,7 +68,7 @@ def shell(bot, ev):
         print("Running: "+ev.params)
         with subprocess.Popen(["bash","-c",ev.params], stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as p:
             for line in iter(p.stdout.readline, b''):
-                bot.privmsg(to, line.decode('utf8').rstrip())
+                bot.privmsg(ev.dest, line.decode('utf8').rstrip())
             print("Process returned: %d"%(p.wait(),))
     threading.Thread(target=process).start()
     return ev
@@ -100,7 +101,7 @@ def short(bot, ev):
 @Hook("COMMAND", scope=1)
 def say(bot, ev):
     line = bytes(ev.params, "utf-8").decode("unicode_escape")
-    bot.privmsg(to, line)
+    bot.privmsg(ev.dest, line)
     return ev
 
 @Hook("COMMAND", scope=1)
@@ -117,6 +118,19 @@ def part(bot, ev):
 def quit(bot, ev):
     bot.send("QUIT", ev.params)
     bot.quit()
+    return ev
+
+@Hook("COMMAND", scope=1)
+def startbot(bot, ev):
+    args = ev.params.split() # server, nick, prefix
+    bot.master.addbot(args[0],{"server": args[1], "nick": args[2], "prefix": args[3]})
+    bot.ring[args[0]].conf['join'].extend(args[4:])
+    bot.ring[args[0]].start()
+    return ev
+
+@Hook("COMMAND", scope=1)
+def stopbot(bot, ev):
+    bot.ring[ev.params].stop()
     return ev
 
 @Hook("SENDRAW")

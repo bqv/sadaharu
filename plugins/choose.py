@@ -19,5 +19,5 @@ def choose(bot, ev):
             if all([x.isalpha() for x in choices]):
                 print("Rolling...")
                 pick = chr(97+random.randint(0,25))
-        bot.privmsg(ev.dest, "%s: %s" % (ev.user.nick, pick))
+        bot.privmsg(ev.dest, "%s: \u200B%s" % (ev.user.nick, pick))
     return ev
