@@ -9,7 +9,7 @@ import random
 @Hook('COMMAND', commands=["urbandictionary", "urban"])
 def ud(bot, ev):
     if not ev.params:
-        bot.privmsg(ev.dest, "Usage: ud <phrase> [index]")
+        bot.notice(ev.dest, "Usage: ud <phrase> [index]")
         return ev
 
     url = 'http://www.urbandictionary.com/iphone/search/define'
@@ -32,20 +32,20 @@ def ud(bot, ev):
         defs = data['list']
 
         if data['result_type'] == 'no_results':
-            bot.privmsg(ev.dest, failmsg() % (ev.user.nick, params['term']))
+            bot.notice(ev.dest, failmsg() % (ev.user.nick, params['term']))
             return None
 
         output = defs[index]['word'] + ' [' + str(index+1) + ']: ' + defs[index]['definition']
     except:
         traceback.print_exc()
-        bot.privmsg(ev.dest, failmsg() % (ev.user.nick, params['term']))
+        bot.notice(ev.dest, failmsg() % (ev.user.nick, params['term']))
         return None
 
     output = output.strip()
     output = output.rstrip()
     output = ' '.join(output.split())
 
-    bot.privmsg(ev.dest, "%s: %s" % (ev.user.nick, output))
+    bot.notice(ev.dest, "%s: %s" % (ev.user.nick, output))
     return ev
 
 def failmsg():

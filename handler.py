@@ -95,7 +95,7 @@ class Handler:
         if not pev.dest in self.bot.chans.keys():
             self.bot.chans[pev.dest] = Channel(self.bot, pev.dest)
         self.bot.chans[pev.dest].getlog(pev.user.nick).appendleft(pev.msg)
-        self.bot.chans[pev.dest].getlog("*all").appendleft("<%s> %s" % (pev.user.nick, pev.msg))
+        self.bot.chans[pev.dest].getlog().appendleft("<%s> %s" % (pev.user.nick, pev.msg))
 
     def onnotice(self, user, msg):
         class NoticeEvent(DirectedOperationEvent):

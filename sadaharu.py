@@ -3,6 +3,7 @@
 
 import sys, os
 import re
+import imp
 import json
 import queue
 import select
@@ -57,8 +58,21 @@ class Bot(threading.Thread):
             self.send("NOTICE", "%s :%s" %(targ, line))
 
     def loadplugins(self):
-        plugins = set([__import__(p[:-3]) for p in os.listdir(self.master.pdir) if p.endswith(".py")])
+        plugins = dict([(p[:-3],__import__(p[:-3])) for p in os.listdir(self.master.pdir) if p.endswith(".py")])
         plugincount = len(plugins)
+        return plugins
+
+    def reloadplugin(self, name):
+        for ho in self.event.hooks.values():
+            for pr,hooks in ho._active.items():
+                for hook in hooks:
+                    if hook.plugin.__name__ == name:
+                        ho.remove(hook.name, pr)
+            for pr,hooks in ho._inactive.items():
+                for hook in hooks:
+                    if hook.plugin.__name__ == name:
+                        ho.remove(hook.name, pr)
+        self.plugins[name] = imp.reload(self.plugins[name])
 
     def getnick(self):
         return self.server.nick
@@ -79,6 +93,13 @@ class Bot(threading.Thread):
 
     def stop(self):
         self.server.disconnect()
+
+    def restart(self):
+        self.server.disconnect()
+        self.log.handlers = []
+        self.ring.pop(self.name)
+        self.master.addbot(self.name, self.conf)
+        self.ring[self.name].start()
     
     def quit(self):
         for bot in self.ring.values():

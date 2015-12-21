@@ -20,9 +20,9 @@ class User:
                 else:
                     self.nick = l[0]
             else:
-                nick = hostmask
+                self.nick = hostmask
         else:
-            nick = "!"
+            self.nick = "!"
 
         self.name = None
         self.hops = None

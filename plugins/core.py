@@ -20,6 +20,9 @@ class IRCterpreter(code.InteractiveConsole):
     def write(self, data):
         self.buff.append(data)
 
+    def flush(self):
+        pass
+
     def flushbuf(self):
         out = ''.join(self.buff).rstrip('\n').replace("\n\n", "\n \n")
 
@@ -28,7 +31,7 @@ class IRCterpreter(code.InteractiveConsole):
             out = '\x02[;_;]\x02 '+out[out.rfind("\n")+1:]
 
         if len(out) > 0:
-            self.bot.privmsg(self.curchan, out)
+            self.bot.notice(self.curchan, out)
         self.buff = []
 
     def run(self, nick, chan, code):
@@ -68,7 +71,7 @@ def shell(bot, ev):
         print("Running: "+ev.params)
         with subprocess.Popen(["bash","-c",ev.params], stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as p:
             for line in iter(p.stdout.readline, b''):
-                bot.privmsg(ev.dest, line.decode('utf8').rstrip())
+                bot.notice(ev.dest, line.decode('utf8').rstrip())
             print("Process returned: %d"%(p.wait(),))
     threading.Thread(target=process).start()
     return ev

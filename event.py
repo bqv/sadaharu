@@ -16,11 +16,11 @@ class HookObj:
         if disabled:
             for i,thook in enumerate(self._inactive[priority]):
                 if thook.name == name:
-                    self._inactive.remove(i)
+                    self._inactive[priority].pop(i)
         else:
             for i,thook in enumerate(self._active[priority]):
                 if thook.name == name:
-                    self._active.remove(i)
+                    self._active[priority].pop(i)
 
     def _get(self, priority, with_disabled=False):
         l = self._active[priority]
@@ -30,12 +30,20 @@ class HookObj:
 
     def active(self):
         l = []
-        map(l.extend, list(self._active.values())[::-1])
+        for hooks in list(self._active.values())[::-1]:
+            l.extend(hooks)
         return l
 
     def inactive(self):
         l = []
-        map(l.extend, list(self._inactive.values())[::-1])
+        for hooks in list(self._inactive.values())[::-1]:
+            l.extend(hooks)
+        return l
+
+    def all(self):
+        l = []
+        l.extend(self.active())
+        l.extend(self.inactive())
         return l
 
     def low(self, with_disabled=False):

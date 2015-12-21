@@ -9,14 +9,29 @@ def grep(bot, ev):
     try:
         regex = re.compile(ev.params)
     except Exception as e:
-        bot.privmsg(ev.dest, "\x02Bad Regex\x02 "+ev.params)
+        bot.notice(ev.dest, "\x02Bad Regex\x02 "+ev.params)
         raise e
+    for line in search(bot.chans[ev.dest].getlog(), regex):
+        bot.notice(ev.dest, line)
+    return ev
+
+@Hook('COMMAND', commands=['ifind', 'iregex'])
+def igrep(bot, ev):
+    try:
+        regex = re.compile(ev.params, re.I)
+    except Exception as e:
+        bot.notice(ev.dest, "\x02Bad Regex\x02 "+ev.params)
+        raise e
+    for line in search(bot.chans[ev.dest].getlog(), regex, False):
+        bot.notice(ev.dest, line)
+    return ev
+
+def search(log, regex, case=True):
     matches = []
-    for msg in bot.chans[ev.dest].getlog('*all'):
+    for msg in log:
         if regex.search(msg):
             matches.insert(0, msg)
     for fire in reversed(matches[-3:]):
-        bot.privmsg(ev.dest, fire)
+        yield fire
     if len(matches) > 3:
-        bot.privmsg(ev.dest, "[...] and %d earlier messages" %(len(matches)-3,))
-    return ev
+        yield "[...] and %d earlier messages" %(len(matches)-3,)

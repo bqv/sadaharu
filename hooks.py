@@ -1,5 +1,7 @@
 # hooks.py: Classes relating to event hooks
 
+import sys
+
 from event import Events
 
 class Hook:
@@ -16,11 +18,15 @@ class Hook:
         self.scope = scope
         self.commands = commands if commands != None else []
 
+    def __repr__(self):
+        return "<Hook '%s'(priority=%d)>"%(self.name, self.priority)
+
     def __call__(self, *args):
         return self.__run__(*args)
 
     def __run__(self, func):
         self.name = func.__name__
+        self.plugin = sys.modules[func.__module__]
         self.commands.insert(0, self.name)
         if self.event == "COMMAND":
             def wrapper(bot, ev):
@@ -42,6 +48,5 @@ class Hook:
                 return func(bot, ev)
         self.__run__ = wrapper
         Events.hooks[self.event].add(self, self.priority, self.disabled)
-        del self.priority, self.disabled
         return func
 

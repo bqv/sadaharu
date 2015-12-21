@@ -41,6 +41,8 @@ currencies = [Currency("DOGE","Ð"  ,"Ð"  ,'dogecoin'),
                Currency("ISK",""   ,""   ,'icelandic krone','krone'),
                Currency("ARS",""   ,""   ,'argentine peso'),
                Currency("DKK",""   ,""   ,'danish kroner'),
+               Currency("NOK",""   ,""   ,'norwegian krone'),
+               Currency("VND",""   ,""   ,'vietnamese dong'),
               ]
 
 def fetchjson(url):
@@ -72,13 +74,13 @@ def getmarket():
 def convert(mkt, val, cur, sel):
     s = "¤ \x02"+cur+"\x02 - {:2,.2f} ¤ \x02".format(val,)
     for u in [str(x) for x in currencies if str(x) != cur]:
-        if (cur not in ["JPY","CNY"] and u in ["JPY","CNY"]) and u not in sel:
+        if (cur not in ["VND","JPY","CNY"] and u in ["VND","JPY","CNY"]) and u not in sel:
             continue
         if (cur not in ["CAD","AUD","NZD"] and u in ["CAD","AUD","NZD"]) and u not in sel:
             continue
         if (cur not in ["DOGE","LTC"] and u in ["DOGE","LTC"]) and u not in sel:
             continue
-        if (cur not in ["DKK","ARS","ISK","PHP","NIO","ZAR","SYP"] and u in ["DKK","ARS","ISK","PHP","NIO","ZAR","SYP"]) and u not in sel:
+        if (cur not in ["NOK","DKK","ARS","ISK","PHP","NIO","ZAR","SYP"] and u in ["NOK","DKK","ARS","ISK","PHP","NIO","ZAR","SYP"]) and u not in sel:
             continue
         v = val * mkt[u] / mkt[cur]
         if u == "BTC":
@@ -87,22 +89,23 @@ def convert(mkt, val, cur, sel):
             s += u+"\x02 - {:2,.2f} ¤ \x02".format(v,)
     return "\x0314"+s
 
-@Hook("PRIVMSG")
+from collections import OrderedDict
+
+@Hook("COMMAND", commands=['cur'])
 def currency(bot, ev):
-    if ev.dest == "#boats":
-        return ev
-    if len(ev.msg) > 1 and ev.msg[1] != "¤" and ev.msg[0] != '[' and ev.msg[:2] != "~~" and ev.user.nick not in ["|","tacobot","epsilon","doge","simbot","ca","zero","awesomeBot"]:
+    if len(ev.params) > 1 and ev.params[1] != "¤":
         l = []
         for c in currencies:
-            m = [[x for x in x.groupdict().values() if x][0] for x in c.re.finditer(ev.msg)]
+            m = [[x for x in x.groupdict().values() if x][0] for x in c.re.finditer(ev.params)]
             for x in m:
                 l.append((c.isoc,float(x.replace(',',''))))
         try:
             if l:
                 k = getmarket()
-            sel = re.sub(r"\W+", "", ev.msg.split()[-1]).split(',')
-            for i in l[:3]:
-                bot.privmsg(ev.dest, convert(k, i[1], i[0], sel))
+            sel = [x.upper() for x in re.sub(r"\W+", "", ev.params.split()[-1]).split(',')]
+            for i in list(OrderedDict.fromkeys(l).keys())[:3]:
+                if i[1] != 0:
+                    bot.notice(ev.dest, convert(k, i[1], i[0], sel))
         except Exception as e:
             traceback.print_exc()
     return ev

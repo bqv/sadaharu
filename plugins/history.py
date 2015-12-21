@@ -7,7 +7,7 @@ def history(bot, ev):
     args = ev.params.split()
     try:
         if args[0].strip().isdigit():
-            for msg in reversed(list(bot.chans[ev.dest].getlog('*all'))[0:int(ev.params.strip())]):
+            for msg in reversed(list(bot.chans[ev.dest].getlog())[0:int(ev.params.strip())]):
                 bot.privmsg(ev.user.nick, msg)
             return ev
         if len(args) > 2 or len(args) < 2 or int(args[1]) > 16 or int(args[1]) < 1:

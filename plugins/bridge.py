@@ -16,5 +16,5 @@ def awflbridge(bot, ev):
             msg = ev.msg
             nick = "<"+ev.user.nick+">"
         line = "-%02d:%02d:%02d- [%s] %s %s" %(t.tm_hour, t.tm_min, t.tm_sec, ev.dest, nick, msg)
-        bot.ring["subluminal"].privmsg("#awfulnet", line)
+        bot.ring["subluminal"].privmsg("#bridge", line)
     return ev

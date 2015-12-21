@@ -11,7 +11,7 @@ except:
 @Hook('COMMAND')
 def weather(bot, ev):
     wv = list(getweather(ev.params))
-    bot.privmsg(ev.dest, "%s: %s" %(ev.user.nick, wv[0]))
+    bot.notice(ev.dest, "%s: %s" %(ev.user.nick, wv[0]))
 #    for w in wv:
 #        __import__('sys').stdout.buffer.write((w+'\n').encode('utf-8'))
 

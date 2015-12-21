@@ -94,7 +94,7 @@ def getnum(bot):
     return bot.data.get("number", Quaternion())
 
 def saynum(bot, dest):
-    bot.privmsg(dest, "The number is now %s" %(bot.data['number'],))
+    bot.notice(dest, "The number is now %s" %(bot.data['number'],))
 
 @Hook('COMMAND', commands=["inc",])
 def add(bot, ev):
