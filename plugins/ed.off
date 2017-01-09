@@ -1,0 +1,39 @@
+import re
+
+from hooks import Hook
+
+@Hook("COMMAND", commands=["ed"])
+def edit(bot, ev):
+    edoc = bot.data.get("edoc", Edoc())
+    output = edoc.process(ev.params)
+    for line in output:
+        bot.notice(ev.dest, "ed | %s"%(line,))
+    return ev
+
+class Edoc(object):
+    def __init__(self):
+        self.data = list()
+        self.input_mode = False
+        self.cursor = 0
+
+    def process(self, line):
+        if self.input_mode:
+            if line == ".":
+                self.input_mode = False
+                return str(len('\n'.join(self.data)))
+            else:
+                self.cursor += 1
+                self.data.insert(self.cursor, line)
+                return line
+        elif line[0].lower() == 'p' and line[1:].strip() == "": # Print
+            return self.data[self.cursor]
+        elif line[0].lower() == ',': # File Range
+            if line[1].lower() == 'p' and line[2:].strip() == "": # Print
+                return self.data
+        elif line[0].lower() == 'w' and line[1:2].strip() == "": # Write
+            return str(len('\n'.join(self.data)))
+        elif line[0].lower() == '-': # Prev
+            if line[1].lower() == 'p' and line[2:].strip() == "": # Print
+            self.cursor -= 1
+        elif line[0].lower() == '+': # Next
+            self.cursor += 1

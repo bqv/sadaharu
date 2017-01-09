@@ -44,7 +44,7 @@ def get_message(bot, sedregex, nick, chan, qual=None):
                 else:
                     if re.search(sedregex, message):
                         return message
-            except BaseException:
+            except Exception:
                 pass
     except KeyError:
         pass
@@ -78,6 +78,6 @@ def sed(bot, ev):
         new_msg = re.sub(s.to_replace, s.replacement, s.msg, s.count, s.flags)
         bot.privmsg(ev.dest, "<%s> %s" % (nick, new_msg))
         return ev
-    except BaseException:
+    except Exception:
         traceback.print_exc()
 

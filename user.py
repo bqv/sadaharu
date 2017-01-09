@@ -11,7 +11,7 @@ class User:
         if hostmask:
             self.hostmask = hostmask
             if '@' in self.hostmask:
-                l = self.hostmask.split('@')
+                l = self.hostmask.rsplit('@', 1)
                 self.host = l[1]
                 if '!' in l[0]:
                     l = l[0].split('!')

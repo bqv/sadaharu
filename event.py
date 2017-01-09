@@ -59,7 +59,7 @@ class Events:
     hooks = dict((s,HookObj(s)) for s in [
                 "SEND","SENDRAW","READ","READRAW","PING","PONG","PRIVMSG",
                 "NICK","NOTICE","RESPONSE","COMMAND","WELCOME","JOIN",
-                "MODE","INVITE","PART","QUIT"])
+                "MODE","INVITE","PART","QUIT","TOPIC"])
 
     def __init__(self, bot):
         self.bot = bot
@@ -94,7 +94,7 @@ class UserOperationEvent(AbstractUserEvent):
     def __init__(self, user, params):
         AbstractUserEvent.__init__(self, user)
         self.oper = self.name
-        self.params = params
+        self.params = params#.split(':', 1)[-1]
 
 class DirectedOperationEvent(UserOperationEvent):
     def __init__(self, user, line):

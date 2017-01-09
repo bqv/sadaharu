@@ -3,6 +3,7 @@
 import sys
 import time
 import traceback
+from collections import deque
 
 from event import EventCancelled, AbstractEvent, AbstractUserEvent, UserOperationEvent, DirectedOperationEvent
 from static import *
@@ -12,11 +13,10 @@ from user import User
 class Handler:
     def __init__(self, bot):
         self.bot = bot
-        self.cmdprefix = bot.conf['prefix']
         self.registered = {"PING": self.onping, "PRIVMSG": self.onprivmsg,
                 "NOTICE": self.onnotice, "ERROR": self.onerror, "JOIN": self.onjoin,
                 "NICK": self.onnickchange, "MODE": self.onmode, "INVITE": self.oninvite,
-                "QUIT": self.onquit, "PART": self.onpart}
+                "QUIT": self.onquit, "PART": self.onpart, "TOPIC": self.ontopic}
 
     def handle(self, line):
         if not line:
@@ -65,12 +65,11 @@ class Handler:
         self.bot.send("PONG", stamp)
 
     def onprivmsg(self, user, msg):
-        pfx = self.cmdprefix
         class PrivmsgEvent(DirectedOperationEvent):
             name = "PRIVMSG"
         class CommandEvent(AbstractEvent):
             name = "COMMAND"
-            def __init__(self, pev):
+            def __init__(self, pev, pfx):
                 AbstractEvent.__init__(self)
                 self.user = pev.user
                 self.dest = pev.dest
@@ -86,8 +85,10 @@ class Handler:
                 print(self.cmd)
                 AbstractEvent.fire(self, bot)
         pev = PrivmsgEvent(user, msg).fire(self.bot)
-        if pev.msg.lstrip().startswith(self.cmdprefix):
-            cev = CommandEvent(pev).fire(self.bot)
+        for cmdprefix in self.bot.conf['prefix']:
+            if pev.msg.lstrip().startswith(cmdprefix):
+                cev = CommandEvent(pev, cmdprefix).fire(self.bot)
+                break
         rcolors = [19, 20, 22, 24, 25, 26, 27, 28, 29]
         nc = rcolors[sum(ord(i) for i in pev.user.nick) % 9] - 16
         nick = "\x03%d%s\x03" %(nc, pev.user.nick)
@@ -112,21 +113,22 @@ class Handler:
         else:
             try:
                 self.bot.users[nev.params] = self.bot.users.pop(nev.user.nick)
+                self.bot.users[nev.params].nick = nev.params
             except:
-                pass
+                traceback.print_exc()
 
     def onjoin(self, user, msg):
         class JoinEvent(UserOperationEvent):
             name = "JOIN"
-        jev = JoinEvent(user, msg).fire(self.bot)
-        if not jev.params in self.bot.chans.keys():
-            self.bot.chans[jev.params] = Channel(self.bot, jev.params)
-        if not jev.user.nick in self.bot.users.keys():
-            self.bot.users[jev.user.nick] = jev.user
-        self.bot.users[jev.user.nick].chans[jev.params] = set()
-        if jev.user.nick == self.bot.getnick():
-            self.bot.send("MODE", jev.params)
-            self.bot.send("WHO", jev.params)
+        for chan in msg.lstrip(':').split(','):
+            jev = JoinEvent(user, chan).fire(self.bot)
+            if not chan in self.bot.chans.keys():
+                self.bot.chans[chan] = Channel(self.bot, chan)
+            if not jev.user.nick in self.bot.users.keys():
+                self.bot.users[jev.user.nick] = jev.user
+            self.bot.users[jev.user.nick].chans[chan] = set()
+            if jev.user.nick == self.bot.getnick():
+                self.bot.send("WHO", chan)
 
     def onpart(self, user, msg):
         class PartEvent(DirectedOperationEvent):
@@ -141,20 +143,38 @@ class Handler:
             if pev.user.nick == self.bot.getnick():
                 self.bot.chans.pop(pev.dest)
         except KeyError:
-            pass
+            traceback.print_exc()
 
     def onquit(self, user, msg):
-        class QuitEvent(DirectedOperationEvent):
+        class QuitEvent(UserOperationEvent):
             name = "QUIT"
         qev = QuitEvent(user, msg).fire(self.bot)
-        if not qev.dest in self.bot.chans.keys():
-            self.bot.chans[qev.dest] = Channel(self.bot, qev.dest)
         try:
-            self.bot.users.pop(qev.user.nick)
+            user = self.bot.users.pop(qev.user.nick)
             if qev.user.nick == self.bot.getnick():
                 self.bot.quit()
         except KeyError:
-            pass
+            traceback.print_exc()
+
+    def onkick(self, user, msg):
+        class KickEvent(DirectedOperationEvent):
+            name = "KICK"
+        kev = KickEvent(user, msg).fire(self.bot)
+        if not kev.dest in self.bot.chans.keys():
+            self.bot.chans[kev.dest] = Channel(self.bot, kev.dest)
+        try:
+            nick = kev.params.split()[0]
+            if not nick in self.bot.users.keys():
+                self.bot.users[nick] = User(nick)
+        except IndexError:
+            traceback.print_exc()
+        try:
+            self.bot.users[nick].chans.pop(kev.dest)
+            if nick == self.bot.getnick():
+                self.bot.chans.pop(kev.dest)
+                self.bot.send("JOIN", kev.dest)
+        except KeyError:
+            traceback.print_exc()
 
     def oninvite(self, user, msg):
         class InviteEvent(DirectedOperationEvent):
@@ -212,6 +232,11 @@ class Handler:
         nev = NumericEvent(user, response, msg).fire(self.bot)
         if nev.oper == 1:
             self.onwelcome(nev)
+        elif nev.oper == 331:
+            self.updatetopic(nev.user, nev.arg.split()[0], "")
+        elif nev.oper == 332:
+            chan,topic = nev.arg.split(' ', 1)
+            self.updatetopic(nev.user, chan, topic[1:])
         elif nev.oper == 324:
             self.onchanmodes(nev)
         elif nev.oper == 352:
@@ -224,7 +249,7 @@ class Handler:
         class WelcomeEvent(AbstractEvent):
             name = "WELCOME"
         WelcomeEvent().fire(self.bot)
-        self.bot.users[self.bot.getnick()] = User(self.bot.getnick())
+        self.bot.users[str(self.bot.getnick())] = User(self.bot.getnick())
         self.bot.send("MODE", self.bot.getnick()+" +B")
         nickserv = self.bot.conf.get('nickserv', None)
         nickpass = self.bot.conf.get('nickpass', None)
@@ -233,6 +258,29 @@ class Handler:
                 self.bot.server.identify(nickpass, nickserv)
             else:
                 self.bot.server.identify(nickpass)
+
+    def ontopic(self, user, msg):
+        chan,topic = msg.split(' ', 1)
+        self.updatetopic(user, chan, topic[1:])
+
+    def updatetopic(self, user, chan, topic):
+        class TopicList(deque):
+            def __init__(self, *args):
+                deque.__init__(self, args, maxlen=64)
+            def __str__(self):
+                return self[-1]
+            def __repr__(self):
+                if len(self) == 0:
+                    return '<TopicList []>' %(self[-1])
+                else:
+                    return '<TopicList ["%s", ...]>' %(self[-1])
+        class TopicEvent(DirectedOperationEvent):
+            name = "TOPIC"
+        TopicEvent(user, chan+" :"+topic).fire(self.bot)
+        if chan in self.bot.topics:
+            self.bot.topics[chan].append(topic)
+        else:
+            self.bot.topics[chan] = TopicList(topic)
 
     def onwhoreply(self, ev):
         chan,name,host,server,nick,state,hops,rname = ev.arg.split(' ',7)
@@ -293,4 +341,13 @@ class Handler:
         t = time.localtime()
         timestamp = "[%02d:%02d:%02d]" %(t.tm_hour, t.tm_min, t.tm_sec)
         self.bot.log.info("%s [%s] %s" %(timestamp, self.bot.name, message))
+
+
+
+
+
+
+
+
+
 

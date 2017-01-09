@@ -29,5 +29,5 @@ def readd(bot, ev):
 @Hook("SEND")
 def math(bot, ev):
     if ev.params and 'math' in ev.params:
-        return False
+        ev.params = re.sub(r"\bmath\b", r"\g<0>s", ev.params)
     return ev

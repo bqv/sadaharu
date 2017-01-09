@@ -60,7 +60,10 @@ def misc(bot, ev):
     maps = bot.data.get("maps", None)
     if not maps:
         bot.data["maps"] = maps = TriggerList()
-        maps.addResponder(r"^pony$", r"PONIES ARE FUCKING GAY.", name="!ping")
+        if bot.name == "york":
+            pass#maps.addResponder(r"wewe", "\x02Memes are bad m'kay\x02", name="ddm", asnotice=False, delay=0.5)
+        if bot.name == "subluminal":
+            maps.addResponder(r"^pony$", r"PONIES ARE FUCKING GAY.", name="!ping")
 #        maps.addTrigger(r"^\s*\\o/\s*$", lambda b,e,m: b.notice(e.dest, " | ") == b.notice(e.dest, "/ \\"), name="\o/")
 #        maps.addResponder(r"^\s*o/\s*$", r"\o", name="o/", asnotice=False, delay=1.8)
 #        maps.addResponder(r"^\s*\\o\s*$", r"o/", name="\o", asnotice=False, delay=1.8)
@@ -68,7 +71,14 @@ def misc(bot, ev):
         maps.addResponder(r"^\s*\|o\|\s*$", r"\o\ |o| /o/", name="|o|", asnotice=False, delay=1.8)
         maps.addResponder(r"^\s*/o/\s*$", "\\o\\", name="/o/", asnotice=False, delay=1.8)
         maps.addResponder(r"^\s*/o\\\s*$", "\\o/", name="/o\\", asnotice=False, delay=1.8)
-    if ev.dest.lower() != "#programming":
+    mapchans = bot.data.get("mapchans", None)
+    if not mapchans:
+        bot.data["mapchans"] = mapchans = []
+        if bot.name == "subluminal":
+            mapchans.append("#programming")
+        if bot.name == "york":
+            mapchans.append("#cs-york")
+    if ev.dest.lower() not in mapchans:
         return ev
     for m in maps:
         m.run(bot, ev)

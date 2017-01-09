@@ -9,7 +9,7 @@ except:
     from urllib import pathname2url as urlencode
 
 @Hook('COMMAND')
-def weather(bot, ev):
+def meteo(bot, ev):
     wv = list(getweather(ev.params))
     bot.notice(ev.dest, "%s: %s" %(ev.user.nick, wv[0]))
 #    for w in wv:
@@ -18,10 +18,12 @@ def weather(bot, ev):
 class Weather:
     def __init__(self, x):
         url = "http://weather.yahooapis.com/forecastrss?u=f&w="
+        self.woeid = x['data-woeid']
         self.location = ', '.join([x['data-country'],x['data-district_county'],x['data-city'],x['data-province_state']])
         self.latlong = "[%s, %s]" %(x['data-center_lat'],x['data-center_long'])
         self.forecast = []
-        soup = soupify(requests.get(url+x['data-woeid']).text)
+        soup = soupify(requests.get(url+x['data-woeid']).text, "lxml")
+        print(soup)
         for z in soup.findAll():
             if z.name.startswith("yweather"):
                 if z.name.endswith("location"):
@@ -142,7 +144,7 @@ def getweather(location):
         qry = urlencode(loc.lower().replace(",", " "))
         req = url+qry
         rsp = requests.get(req)
-        bsp = soupify(rsp.text)
+        bsp = soupify(rsp.text, "lxml")
         tbl = bsp.findAll("table")[0]
         ids = [x.attrs for x in list(tbl)[1:]]
 
@@ -152,6 +154,6 @@ def getweather(location):
                 yield w.form()
             else:
                 print(w.__dict__)
-    except:
+    except Exception as e:
         yield "NoSuchPlaceError: '%s' not found (on earth)" %(loc)
 

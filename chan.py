@@ -5,10 +5,11 @@ from collections import deque
 
 class Channel:
     def __init__(self, bot, name):
+        self.bot = bot
         self.name = name
         self.modes = set()
         self._logs = bot.data['logs'] = bot.data.get('logs', dict())
-        self._logs[self.name] = dict({None: deque([], 16386)})
+        self._logs[self.name] = dict({None: deque([], 65536)})
 
     def users(self):
         return [x for n,x in self.bot.users.items() if self.name in x.chans.keys()]
